@@ -1,23 +1,25 @@
 import Data.List
+import Data.Functor
 splitOnBlank :: String -> [String]
-splitOnBlank xs = splitOnBlank' xs ("",[""])
-
-splitOnBlank' :: String -> (String,[String]) -> [String]
-splitOnBlank' [] (rest,acc)     = reverse rest : acc
-splitOnBlank' ['\n'] (rest,acc) = reverse rest : acc
-splitOnBlank' [x]    (rest,acc) = reverse (x:rest) : acc 
-splitOnBlank' (s:x:xs) (rest,acc) | [s,x] == "\n\n" = splitOnBlank' xs ("",(reverse rest):acc)
-		                  | otherwise       = splitOnBlank' (x:xs) (s:rest,acc)
+splitOnBlank xs = let (x,y) = splitOnBlank' xs in x:y
+    where
+        splitOnBlank' :: String -> (String,[String])
+        splitOnBlank' [] = ("",[])
+        splitOnBlank' (x:xs) 
+            | s /= [] && head s == x && x == '\n' = ([], tail s : acc)
+            | otherwise                           = ( x : s, acc)
+                where
+                    (s,acc) = splitOnBlank' xs
 
 countOC :: [String] -> Int
 countOC [] = 0
 countOC xs = length $ nub $ foldl intersect (head xs) xs
 
 solve :: [[String]] -> Int
-solve xs = foldl (+) 0 $ map countOC xs
+solve xs = sum $ map countOC xs
 
 readInput :: String -> IO [[String]]
-readInput fn = readFile fn >>= return.(map lines). splitOnBlank
+readInput fn = readFile fn <&> map lines . splitOnBlank
 
 main :: IO()
-main = readInput "../input" >>= print.solve
+main = readInput "../input" >>= print . solve
