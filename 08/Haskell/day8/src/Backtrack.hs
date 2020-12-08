@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Lib where
+module Backtrack where
 
 import Control.Lens
 import Data.Attoparsec.ByteString.Char8
@@ -34,38 +34,41 @@ runOP c (JMP i) = (ireg +~ i).(lastJmp .~ (c ^. ireg)) $ c
 runOP c (NOP _) = ireg +~ 1 $ c
 
 solve :: (Computer, Program) ->  Visited -> Maybe Int
-solve (c,p) v | nextOP `I.member` v  = Nothing
-              | nextOP == S.length p = Just (c ^. acc)
-              | otherwise            = solve (c',p) v'
+solve (c,p) v | nextAddr `I.member` v  = Nothing
+              | nextAddr == S.length p = Just (c ^. acc)
+              | otherwise              = solve (c', p) v'
     where
-        nextOP = c ^. ireg
-        c' = runOP c $ fromJust $ S.lookup nextOP p
-        v' = I.insert (c ^. ireg) v
+        nextAddr = c ^. ireg
+        nextOP   = fromJust $ S.lookup nextAddr p
+        c'  = runOP c nextOP
+        v'  = I.insert (c ^. ireg) v
 
-createOptions :: Program -> [Program]
-createOptions prog = splitFlowAt (length prog - 1)
+solveWithBacktrack :: (Computer, Program) ->  Visited -> Maybe Int
+solveWithBacktrack (c,p) v | nextAddr `I.member` v  = Nothing
+                           | nextAddr == S.length p = Just (c ^. acc)
+                           | otherwise              = case solveWithBacktrack (c',p) v' of
+                                                        Just v -> Just v
+                                                        Nothing -> solve (c'',p) v'
     where
-        splitFlowAt :: Int -> [Program]
-        splitFlowAt 0 = case S.lookup 0 prog of
-                            Just (JMP off) -> [S.update 0 (NOP off) prog]
-                            Just (NOP off) -> [S.update 0 (JMP off) prog]
-                            _            -> []
-        
-        splitFlowAt i = case S.lookup i prog of
-                            Just (JMP off) -> (S.update i (NOP off) prog) : (splitFlowAt (i-1))
-                            Just (NOP off) -> (S.update i (JMP off) prog) : (splitFlowAt (i-1))
-                            _              -> splitFlowAt (i-1)
+        nextAddr = c ^. ireg
+        nextOP   = fromJust $ S.lookup nextAddr p
+        c'  = runOP c nextOP
+        c'' = runOP c $ swapOP nextOP
+        v'  = I.insert (c ^. ireg) v
 
+        swapOP :: Instruction -> Instruction
+        swapOP (JMP i) = NOP i
+        swapOP (NOP i) = JMP i
+        swapOP a       = a
 
--- Create a list of all possible solutions, and search for the solution within them 
 
 findSolution :: B.ByteString -> Int
 findSolution raw = case parseOnly pProgram raw of
-                    Right p ->  head $ mapMaybe (\x -> solve (newComputer,x) I.empty) $ createOptions p
+                    Right p -> fromJust $ solveWithBacktrack (newComputer,p) I.empty
                     Left _  -> error "could not parse file"
 
-run :: IO ()
-run = B.readFile "../../input" >>= print.findSolution
+run :: IO Int
+run = B.readFile "../../input" >>= return.findSolution
 
 {- Parsers -}
 

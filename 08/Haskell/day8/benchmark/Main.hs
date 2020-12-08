@@ -2,13 +2,17 @@ module Main where
 
 import Criterion.Main
 import qualified Data.ByteString as B
-import Lib (run,findSolution)
+import qualified Brute (run,findSolution)
+import qualified Backtrack (run,findSolution)
 
 main :: IO ()
 main = do
   raw <- B.readFile "../../input"
   defaultMain [
-    bgroup "Solver" [ bench "with-io"  $ nfIO run
-                    , bench "no-io"    $ whnf findSolution raw
-                    ]
-            ]
+    bgroup "Bruteforce" [ bench "with-io"  $ nfIO Brute.run
+                        , bench "no-io"    $ whnf Brute.findSolution raw
+                        ],
+    bgroup "Backtrack" [ bench "with-io" $ nfIO Backtrack.run
+                        , bench "no-io"   $ whnf Backtrack.findSolution raw
+                        ] 
+    ]

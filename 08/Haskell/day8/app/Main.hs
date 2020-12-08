@@ -1,6 +1,6 @@
 module Main where
 
-import Lib (run)
+import Backtrack (run)
 
 main :: IO ()
-main = run
+main = run >>= print

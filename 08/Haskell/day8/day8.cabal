@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5125243e851732169cbc355b00f1f54b053672de1781968a53c3f79eb9318238
+-- hash: 7da3ce90963d19ee6f74fcb3ef7810566a0f36bd5bb6f4a00760da6ea0ef7d20
 
 name:           day8
 version:        0.1.0.0
@@ -27,7 +27,8 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Backtrack
+      Brute
   other-modules:
       Paths_day8
   hs-source-dirs:
