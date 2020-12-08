@@ -26,6 +26,7 @@ dependencies:
 - unordered-containers >= 0.2 && < 0.3
 - containers >= 0.6 && < 0.7
 - lens >= 4.18 && < 5.0
+- criterion >= 1.5 && < 1.6
 
 library:
   source-dirs: src
@@ -40,6 +41,18 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - day8
+
+benchmarks:
+  day8-bench:
+    main:               Main.hs
+    source-dirs:        benchmark
+    ghc-options:
+      - -O
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - day8
 
 tests:
   day8-test:

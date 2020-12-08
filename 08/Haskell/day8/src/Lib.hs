@@ -1,9 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Lib
-    ( run
-    ) where
+module Lib where
 
 import Control.Lens
 import Data.Attoparsec.ByteString.Char8
@@ -24,6 +22,8 @@ data Computer = Computer {
 makeLenses ''Computer
 
 data Instruction = ACC Int | JMP Int | NOP Int
+type Visited = I.IntSet
+type Program = S.Seq Instruction
 
 newComputer :: Computer
 newComputer = Computer 0 0 0
@@ -32,19 +32,6 @@ runOP :: Computer -> Instruction -> Computer
 runOP c (ACC i) = (ireg +~ 1).(acc +~ i) $ c
 runOP c (JMP i) = (ireg +~ i).(lastJmp .~ (c ^. ireg)) $ c
 runOP c (NOP _) = ireg +~ 1 $ c
-
-type Visited = I.IntSet
-type Program = S.Seq Instruction
-
-run :: IO ()
-run = do
-    inpt <- B.readFile "../../input"
-    let parsed = case parseOnly pProgram inpt of
-                    Right p -> p
-                    Left _ -> error "could not parse file"
-    let options = createOptions parsed
-    print $ head $ mapMaybe (\x -> solve (newComputer,x) I.empty) options
-
 
 solve :: (Computer, Program) ->  Visited -> Maybe Int
 solve (c,p) v | nextOP `I.member` v  = Nothing
@@ -70,8 +57,17 @@ createOptions prog = splitFlowAt (length prog - 1)
                             _              -> splitFlowAt (i-1)
 
 
---dotted cyan bags contain 3 wavy aqua bags, 4 shiny brown bags, 4 faded tan bags.
--- name "contain" [nr name, nr name,...] | no other bags
+-- Create a list of all possible solutions, and search for the solution within them 
+
+findSolution :: B.ByteString -> Int
+findSolution raw = case parseOnly pProgram raw of
+                    Right p ->  head $ mapMaybe (\x -> solve (newComputer,x) I.empty) $ createOptions p
+                    Left _  -> error "could not parse file"
+
+run :: IO ()
+run = B.readFile "../../input" >>= print.findSolution
+
+{- Parsers -}
 
 pProgram :: Parser Program
 pProgram = pInst `sepBy` endOfLine >>= return . S.fromList
