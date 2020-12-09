@@ -1,5 +1,6 @@
 module Lib where 
 
+import Control.Applicative
 import Data.Functor
 import Data.Maybe
 import Data.List
@@ -19,11 +20,11 @@ type SumTables = S.Seq (Int,IS.IntSet)
 calcSums :: Seq (Int,IS.IntSet) -> Int -> Seq (Int,IS.IntSet)
 calcSums xs i = (i,set) <| xs
     where
-        terms = fmap fst $ xs
-        set = foldl (\a b -> IS.insert b a) IS.empty $ fmap (i+) terms
+        terms = fst <$> xs
+        set = foldl (flip IS.insert) IS.empty $ (i+) <$> terms
 
 genInitPreable :: [Int] -> SumTables
-genInitPreable xs = foldl calcSums S.empty xs
+genInitPreable = foldl calcSums S.empty
 
 checkInt :: SumTables -> Int -> Bool
 checkInt xs x = IS.member x tables 
@@ -36,15 +37,15 @@ addInt (_ :<| xs) i = fmap (addInt' i) xs |> (i,IS.empty)
         addInt' :: Int -> (Int,IS.IntSet) -> (Int,IS.IntSet)
         addInt' y (x,t) = (x,IS.insert (x+y) t)
 
-solver :: [Int] -> SumTables -> Maybe Int
-solver []     st  = Nothing 
-solver (x:xs) st | checkInt st x = solver xs (addInt st x)
-                 | otherwise     = Just x
-
 findOutlier :: [Int] -> Int
 findOutlier xs = fromJust $ solver xs' st
     where xs' = drop 25 xs
-          st = genInitPreable $ take 25 xs
+          st  = genInitPreable $ take 25 xs
+          
+          solver :: [Int] -> SumTables -> Maybe Int
+          solver []     st                 = Nothing 
+          solver (x:xs) st | checkInt st x = solver xs (addInt st x)
+                           | otherwise     = Just x
 
 {- Find the sequence -}
 
@@ -58,9 +59,7 @@ findseq:
 findSeq :: Int -> [Int] -> Maybe (Int,Int)
 findSeq target []          = Nothing
 findSeq target (x:xs) | target == x = Nothing
-                      | otherwise = case findSeq' xs x of
-                                        Nothing -> (findSeq target xs) 
-                                        Just a -> return a
+                      | otherwise =  maybe (findSeq target xs) return (findSeq' xs x)
     where
         findSeq' :: [Int] -> Int -> Maybe (Int,Int)
         findSeq' [] acc                         = Nothing
@@ -70,9 +69,10 @@ findSeq target (x:xs) | target == x = Nothing
 
 
 findMinMax :: [Int] -> (Int,Int) -> Int
-findMinMax xs (low,high) = (maximum xs') + (minimum xs')
+findMinMax xs (low,high) = maximum xs' + minimum xs'
     where
-        xs' = high : (takeWhile (/= high) $ dropWhile (/= low) xs)
+        -- Order does not matter, we only need max/min
+        xs' = high : takeWhile (/= high) (dropWhile (/= low) xs)
 
 {-Glue-}
 
@@ -80,7 +80,7 @@ runSolver :: [Int] -> Int
 runSolver xs = findMinMax xs $ fromJust $ findSeq (findOutlier xs) xs
 
 readInpt :: String -> IO [Int]
-readInpt f = readFile f <&> (map read).lines
+readInpt f = readFile f <&> map read . lines
 
 run :: String -> IO Int
 run f = readInpt f <&> runSolver
