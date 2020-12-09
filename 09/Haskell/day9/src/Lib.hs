@@ -26,9 +26,9 @@ genInitPreable :: [Int] -> SumTables
 genInitPreable = foldl calcSums S.empty
 
 checkInt :: SumTables -> Int -> Bool
-checkInt xs x = IS.member x tables 
+checkInt xs x = any (\s -> IS.member x s) sets
     where
-        tables = IS.unions $ fmap snd xs
+        sets = fmap snd xs
 
 addInt :: SumTables -> Int -> SumTables
 addInt (_ :<| xs) i = fmap (addInt' i) xs |> (i,IS.empty)

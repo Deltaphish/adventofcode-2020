@@ -24,7 +24,6 @@ dependencies:
 - containers >= 0.6 && < 0.7
 - criterion >= 1.5 && < 1.6
 
-
 library:
   source-dirs: src
 
@@ -42,7 +41,7 @@ executables:
 benchmarks:
   day9-bench:
     main:               Main.hs
-    source-dirs:        benchmark
+    source-dirs:        bench
     ghc-options:
       - -O
       - -threaded
@@ -50,6 +49,7 @@ benchmarks:
       - -with-rtsopts=-N
     dependencies:
       - day9
+
 
 tests:
   day9-test:
