@@ -22,6 +22,8 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - containers >= 0.6 && < 0.7
+- criterion >= 1.5 && < 1.6
+
 
 library:
   source-dirs: src
@@ -36,6 +38,18 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - day9
+
+benchmarks:
+  day9-bench:
+    main:               Main.hs
+    source-dirs:        benchmark
+    ghc-options:
+      - -O
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - day9
 
 tests:
   day9-test:

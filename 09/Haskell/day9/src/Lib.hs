@@ -9,33 +9,40 @@ import qualified Data.IntSet as IS
 import qualified Data.Sequence as S
 import Data.Sequence ((<|),(|>),Seq(..))
 
-type SumTables = S.Seq (Int,IS.IntSet)
+data SumTables = SumTables (S.Seq (Int,IS.IntSet)) IS.IntSet deriving Show
 
 
---(a -> b -> a) -> a -> [b] -> a
+--(a -> b -> b) -> b -> [a] -> b
 --[Int,IS.IntSet] -> Int -> [Int, IS.IntSet]
 
 {- Find the outlier -}
 
-calcSums :: Seq (Int,IS.IntSet) -> Int -> Seq (Int,IS.IntSet)
-calcSums xs i = (i,set) <| xs
+seqToSet :: Seq Int -> IS.IntSet
+seqToSet = foldl (flip IS.insert) IS.empty
+
+calcSums :: Int -> Seq (Int,IS.IntSet) -> Seq (Int,IS.IntSet)
+calcSums i xs = (i,set) <| xs
     where
         terms = fst <$> xs
         set = foldl (flip IS.insert) IS.empty $ (i+) <$> terms
 
 genInitPreable :: [Int] -> SumTables
-genInitPreable = foldl calcSums S.empty
+genInitPreable xs = SumTables tables global
+    where
+        tables = foldr calcSums S.empty xs
+        global = IS.unions $ fmap snd tables
 
 checkInt :: SumTables -> Int -> Bool
-checkInt xs x = IS.member x tables 
-    where
-        tables = IS.unions $ fmap snd xs
+checkInt (SumTables xs global) x = IS.member x global
 
 addInt :: SumTables -> Int -> SumTables
-addInt (_ :<| xs) i = fmap (addInt' i) xs |> (i,IS.empty)
+addInt (SumTables (old :<| xs) global) i = SumTables ( xs' |> (i,IS.empty)) global'
     where
-        addInt' :: Int -> (Int,IS.IntSet) -> (Int,IS.IntSet)
-        addInt' y (x,t) = (x,IS.insert (x+y) t)
+        global' = IS.union (seqToSet newTerms) $  global `IS.difference`  (snd old)
+        (xs',newTerms) = S.unzip $ fmap (addInt' i) xs
+
+        addInt' :: Int -> (Int,IS.IntSet) -> ((Int,IS.IntSet),Int)
+        addInt' y (x,t) = ((x,IS.insert (x+y) t),(y+x))
 
 findOutlier :: [Int] -> Int
 findOutlier xs = fromJust $ solver xs' st
@@ -43,7 +50,7 @@ findOutlier xs = fromJust $ solver xs' st
           st  = genInitPreable $ take 25 xs
           
           solver :: [Int] -> SumTables -> Maybe Int
-          solver []     st                 = Nothing 
+          solver [] _       = Nothing 
           solver (x:xs) st | checkInt st x = solver xs (addInt st x)
                            | otherwise     = Just x
 
