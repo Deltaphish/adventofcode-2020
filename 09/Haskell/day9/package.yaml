@@ -43,7 +43,7 @@ benchmarks:
     main:               Main.hs
     source-dirs:        bench
     ghc-options:
-      - -O
+      - -O2
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
