@@ -11,39 +11,42 @@ type Command = Either Direction Orientation
 type X = Int
 type Y = Int
 type Postition = (X,Y)
-type Bearing = Int
+type Waypoint = (X,Y)
 
-bearingToCartesian :: Int -> (X,Y)
-bearingToCartesian 0 = (1,0)
-bearingToCartesian 90 = (0,1)
-bearingToCartesian 180 = (-1,0)
-bearingToCartesian 270 = (0,-1)
-bearingToCartesian 360 = (1,0)
-bearingToCartesian x | x < 0 = bearingToCartesian (360 + x)
-                     | x > 360 = bearingToCartesian (x - 360)
-
-data Boat = Boat Postition Bearing deriving Show
+data Boat = Boat Postition Waypoint deriving Show
 
 newBoat :: Boat
-newBoat = Boat (0,0) 0
+newBoat = Boat (0,0) (10,1)
 
 runCommand ::  Command -> Boat -> Boat
 runCommand c b = either (moveBoat b) (turnBoat b) c
 
 moveBoat :: Boat -> Direction -> Boat
-moveBoat (Boat (x,y) b) (North v) = Boat (x,y+v) b 
-moveBoat (Boat (x,y) b) (South v) = Boat (x,y-v) b 
-moveBoat (Boat (x,y) b) (West v) = Boat (x-v,y) b 
-moveBoat (Boat (x,y) b) (East v) = Boat (x+v,y) b
-moveBoat (Boat (x,y) b) (Forward v) = Boat (x+dx*v,y+dy*v) b
-    where (dx,dy) = bearingToCartesian b
+moveBoat (Boat p (wx,wy)) (North v) = Boat p (wx,wy+v) 
+moveBoat (Boat p (wx,wy)) (South v) = Boat p (wx,wy-v)  
+moveBoat (Boat p (wx,wy)) (West v) = Boat p (wx-v,wy) 
+moveBoat (Boat p (wx,wy)) (East v) = Boat p (wx+v,wy) 
+moveBoat (Boat (x,y) (wx,wy)) (Forward v) = Boat (x+wx*v,y+wy*v) (wx,wy)
+
+rotate (x,y) 90 = (-y,x)
+rotate (x,y) 180 = (-x,-y)
+rotate (x,y) 270 = (y,-x)
+rotate (x,y) 360 = (x,y)
+rotate (x,y) deg | deg < 0 = rotate (x,y) (360 + deg)
+                    | deg > 360 = rotate (x,y) (deg - 360)
 
 turnBoat :: Boat -> Orientation -> Boat
-turnBoat (Boat pos b) (Port deg)      = Boat pos (b+deg)
-turnBoat (Boat pos b) (Starboard deg) = Boat pos (b-deg)
+turnBoat (Boat pos wp) (Port deg) = 
+    let wp' = rotate wp deg in
+        Boat pos wp'
+     
+turnBoat (Boat pos wp) (Starboard deg) = 
+    let wp' = rotate wp (-deg) in
+        Boat pos wp'
+
 
 runSolver :: [Command] -> Boat
-runSolver = foldr runCommand newBoat
+runSolver = foldl (flip runCommand) newBoat
 
 findDistance :: Boat -> Int
 findDistance (Boat (x,y) _ ) = abs x + abs y 
