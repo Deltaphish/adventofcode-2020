@@ -4,4 +4,4 @@ import Data.Functor
 import Lib
 
 main :: IO ()
-main = readInpt "../../input" >>= print.(uncurry solvep1).runParser
+main = readInpt "../../input" >>= print.solver
